@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UX Benchmark Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Newsreader:opsz,wght@6..72,500&display=swap">
+<style>
+/* Layout: deck slide language (96px margins, eyebrow, serif headline with one red word, hairline rules, soft red "so what" band).
+   Left = ranked product list that doubles as the selector; right = radar; band + footer below. */
+:root{
+  --bg:#fafafa; --ink:#2e3d4d; --muted:#959ca3; --accent:#ed1c24; --tint:#ffe8e9;
+  --rule:rgba(149,156,163,.45); --grid:rgba(149,156,163,.35); --other:rgba(46,61,77,.28);
+  --lift:0%; --surface:#fafafa; --row-hover:rgba(46,61,77,.04);
+  --serif:'Newsreader',Georgia,'Times New Roman',serif; --sans:'Test Geograph','Geograph','Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171c; --ink:#e4e9ee; --muted:#8c949c; --accent:#ff4d54; --tint:#2c1a1c;
+  --rule:rgba(140,148,156,.35); --grid:rgba(140,148,156,.28); --other:rgba(228,233,238,.26);
+  --lift:38%; --surface:#12171c; --row-hover:rgba(228,233,238,.05); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171c; --ink:#e4e9ee; --muted:#8c949c; --accent:#ff4d54; --tint:#2c1a1c;
+  --rule:rgba(140,148,156,.35); --grid:rgba(140,148,156,.28); --other:rgba(228,233,238,.26);
+  --lift:38%; --surface:#12171c; --row-hover:rgba(228,233,238,.05); color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);margin:0}
+*{box-sizing:border-box}
+.slide{max-width:1728px;margin:0 auto;padding-block:72px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1536px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+.eyebrow{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);line-height:19px}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(30px,3.4vw,40px);line-height:1.18;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h1 em{font-style:normal;color:var(--accent)}
+.sub{font-size:16px;line-height:25px;max-width:62ch;margin:0}
+.head{display:flex;flex-direction:column;gap:14px}
+.main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:56px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr);gap:28px}}
+
+/* list */
+.list-head,.row{display:grid;grid-template-columns:minmax(0,1fr) 112px 80px;align-items:center;gap:12px}
+.list-head{padding-bottom:12px}
+.th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.th.r{text-align:right;white-space:nowrap}
+.row{width:100%;background:none;border:0;border-top:1px solid var(--rule);padding:12px 8px 12px 0;margin:0;font:inherit;color:var(--ink);text-align:left;cursor:pointer;border-radius:0}
+.row:hover{background:var(--row-hover)}
+.row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.name{font-size:15px;line-height:23px}
+.dots{display:flex;gap:5px}
+.dot{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--c);flex:none}
+.dot.on{background:var(--c)}
+.sq{width:10px;height:10px;border-radius:3px;background:var(--c);flex:none}
+.avg{font-size:15px;text-align:right;font-variant-numeric:tabular-nums}
+.row[aria-pressed="true"]{background:var(--row-hover)}
+.row[aria-pressed="true"] .name,.row[aria-pressed="true"] .avg{font-weight:500}
+.nm{display:flex;align-items:center;gap:10px;min-width:0}
+.list{border-bottom:1px solid var(--rule)}
+.scale{font-size:12px;color:var(--muted);margin-top:12px;line-height:18px}
+
+/* chart */
+.chartbox{display:flex;flex-direction:column;gap:16px;min-width:0}
+.legend{display:flex;flex-wrap:wrap;gap:8px 28px;font-size:13px;line-height:20px}
+.lg{display:flex;align-items:center;gap:8px}
+.sw{width:22px;height:0;border-top:2px solid var(--other);flex:none}
+.sw.sel{border-color:var(--c);border-top-width:3px}
+.sw.avg{border-top:2px dashed var(--ink)}
+svg{width:100%;height:auto;display:block;overflow:visible}
+svg text{font-family:var(--sans)}
+.ax{font-size:12px;letter-spacing:.06em;text-transform:uppercase;fill:var(--muted)}
+.tick{font-size:10px;fill:var(--muted)}
+.vlab{font-size:13px;font-weight:500}
+.hint{font-size:13px;color:var(--muted)}
+.tip{position:fixed;pointer-events:none;z-index:20;background:var(--ink);color:var(--bg);font-size:12px;line-height:18px;padding:6px 10px;border-radius:8px;opacity:0;transition:opacity .1s;max-width:220px}
+.tip.show{opacity:1}
+
+/* so what */
+.sowhat{background:var(--tint);border-radius:12px;padding:20px 28px;display:flex;gap:24px;align-items:center}
+.sowhat b{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);font-weight:500;white-space:nowrap}
+.sowhat p{margin:0;font-size:16px;line-height:25px;min-width:0}
+@media (max-width:640px){.sowhat{flex-direction:column;align-items:flex-start;gap:8px}}
+
+details{border-top:1px solid var(--rule);padding-top:12px}
+summary{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer}
+.tablewrap{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 12px 8px 0;border-top:1px solid var(--rule)}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:400;border-top:0}
+td.n{text-align:center}
+.foot{display:flex;justify-content:space-between;gap:16px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.tip{transition:none}}
+</style>
+
+</head>
+<body>
+<div class="slide"><div class="wrap">
+  <div class="head">
+    <div class="eyebrow">Competitive benchmarking</div>
+    <h1>Where Kotak Neo <em>stands</em> against the market</h1>
+    <p class="sub">Nine products scored 1–5 on five UX parameters, using the same journey on every product. Hover a product to focus it; click to pin it.</p>
+  </div>
+
+  <div class="main">
+    <div>
+      <div class="list-head"><span class="th">Product</span><span class="th"></span><span class="th r">Avg score</span></div>
+      <div class="list" id="list" role="group" aria-label="Select a product"></div>
+      <div class="scale">Ranked by average across the five parameters. Dots show the average, rounded.</div>
+    </div>
+    <div class="chartbox">
+      <div class="legend" id="legend"></div>
+      <svg id="radar" viewBox="0 0 680 560" role="img" aria-labelledby="rtitle rdesc"></svg>
+    </div>
+  </div>
+
+  <div class="sowhat"><b>So what</b><p id="sowhat"></p></div>
+
+  <details><summary>View data table</summary>
+    <div class="tablewrap"><table id="tbl"></table></div>
+  </details>
+
+  <div class="foot"><span>Kotak Neo · Design assignment</span><span>Scores 1–5</span></div>
+</div></div>
+<div class="tip" id="tip"></div>
+
+<script>
+const AX=["Discoverability","Clarity of intent","Trust & Transparency","Predictability & Control","Error prevention"];
+/* Brand primaries are approximations from memory, not official brand-kit values. Edit here to correct. */
+const DATA=[
+ ["INDmoney",[2,4,5,4,4],"#2D3FE0"],["Kite by Zerodha",[3,4,3,4,3],"#FF5722"],["Groww",[5,5,4,4,4],"#00B386"],
+ ["Kotak Neo",[3,2,4,3,2],"#ED1C24"],["Smallcase",[3,4,4,4,3],"#2F98F3"],["Angel One",[3,2,3,3,2],"#F5A623"],
+ ["Upstox",[2,4,5,3,4],"#5F259F"],["Wint wealth",[3,4,3,4,3],"#7A8B2E"],["ICICI Direct",[2,2,3,3,2],"#B02A30"]];
+const N=AX.length, CX=340, CY=290, R=190, NS="http://www.w3.org/2000/svg", SUBJECT="Kotak Neo";
+const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const mkt=AX.map((_,i)=>avg(DATA.map(d=>d[1][i])));
+let pin=null, hov=null;
+const focus=()=>hov||pin;
+const col=c=>"color-mix(in srgb, "+c+" calc(100% - var(--lift)), white var(--lift))";
+const ang=i=>-Math.PI/2+i*2*Math.PI/N;
+const pt=(i,v)=>[CX+Math.cos(ang(i))*R*v/5, CY+Math.sin(ang(i))*R*v/5];
+const poly=vals=>vals.map((v,i)=>pt(i,v).join(",")).join(" ");
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const f1=x=>x.toFixed(1), f2=x=>x.toFixed(2);
+const svg=document.getElementById("radar"), tip=document.getElementById("tip");
+function showTip(e,t){tip.textContent=t;tip.classList.add("show");tip.style.left=Math.min(e.clientX+14,innerWidth-230)+"px";tip.style.top=(e.clientY+14)+"px"}
+function hideTip(){tip.classList.remove("show")}
+function setHov(n){if(hov===n)return;hov=n;update()}
+
+const polys={}; let fg, hitLayer;
+function build(){
+  svg.innerHTML="";
+  el("title",{id:"rtitle"},svg).textContent="Radar chart comparing nine investing apps on five UX parameters";
+  el("desc",{id:"rdesc"},svg).textContent=DATA.map(d=>d[0]+": "+d[1].join(", ")).join(". ")+". Order: "+AX.join(", ")+".";
+  for(let r=1;r<=5;r++){
+    el("polygon",{points:poly(Array(N).fill(r)),fill:"none",stroke:"var(--grid)","stroke-width":r===5?1.2:1},svg);
+    el("text",{x:CX+4,y:CY-R*r/5-3,class:"tick"},svg).textContent=r;
+  }
+  for(let i=0;i<N;i++){const [x,y]=pt(i,5);el("line",{x1:CX,y1:CY,x2:x,y2:y,stroke:"var(--grid)","stroke-width":1},svg)}
+  AX.forEach((a,i)=>{
+    const c=Math.cos(ang(i)), s=Math.sin(ang(i)), lx=CX+c*(R+26), ly=CY+s*(R+26);
+    const parts=a.includes(" & ")?[a.split(" & ")[0]+" &",a.split(" & ")[1]]:[a];
+    const t=el("text",{x:lx,y:ly+(s<-.5?-(parts.length-1)*15:s>.5?12:4),class:"ax","text-anchor":Math.abs(c)<.2?"middle":(c>0?"start":"end")},svg);
+    parts.forEach((p,k)=>{el("tspan",{x:lx,dy:k?15:0},t).textContent=p});
+  });
+  const seen={};
+  DATA.forEach(([n,v,c])=>{
+    const key=v.join(); const dup=seen[key]; seen[key]=(seen[key]||0)+1;
+    const p=el("polygon",{points:poly(v),fill:"none","stroke-linejoin":"round","stroke-dasharray":"none"},svg);
+    p.style.stroke=col(c); polys[n]=p;
+  });
+  el("polygon",{points:poly(mkt),fill:"none",stroke:"var(--ink)","stroke-width":1.75,"stroke-dasharray":"6 5","stroke-linejoin":"round","pointer-events":"none"},svg);
+  fg=el("g",{},svg);
+  hitLayer=el("g",{},svg);
+  DATA.forEach(([n,v])=>{
+    const h=el("polygon",{points:poly(v),fill:"none",stroke:"transparent","stroke-width":14,"stroke-linejoin":"round","pointer-events":"stroke",style:"cursor:pointer"},hitLayer);
+    h.addEventListener("mouseenter",()=>setHov(n));h.addEventListener("mouseleave",()=>setHov(null));
+    h.addEventListener("click",()=>{pin=pin===n?null:n;update()});
+  });
+}
+function paintRadar(){
+  const f=focus();
+  DATA.forEach(([n,v,c])=>{
+    const p=polys[n], on=f===n;
+    p.style.fill=on?"color-mix(in srgb, "+col(c)+" 16%, transparent)":"none";
+    p.setAttribute("stroke-width",on?3:(!f&&n===SUBJECT?2.5:1.75));
+    p.style.opacity=f&&!on?.13:1;
+    if(on) svg.insertBefore(p,fg);
+  });
+  fg.innerHTML="";
+  if(!f) return;
+  const [,cv,c]=DATA.find(d=>d[0]===f);
+  cv.forEach((v,i)=>{
+    const [x,y]=pt(i,v), cs=Math.cos(ang(i)), sn=Math.sin(ang(i));
+    el("circle",{cx:x,cy:y,r:5,style:"fill:"+col(c),stroke:"var(--surface)","stroke-width":2},fg);
+    const t=el("text",{x:x+cs*16,y:y+sn*16+4,class:"vlab","text-anchor":Math.abs(cs)<.2?"middle":(cs>0?"start":"end"),style:"fill:"+col(c)},fg);t.textContent=v;
+    const h=el("circle",{cx:x,cy:y,r:16,fill:"transparent",tabindex:0,"aria-label":f+" "+AX[i]+" "+v+", market average "+f1(mkt[i])},fg);
+    const msg=f+" · "+AX[i]+": "+v+" (market "+f1(mkt[i])+")";
+    h.addEventListener("mousemove",e=>{showTip(e,msg);hov=f}); h.addEventListener("mouseleave",hideTip);
+    h.addEventListener("focus",()=>{const b=h.getBoundingClientRect();showTip({clientX:b.x,clientY:b.y},msg)});h.addEventListener("blur",hideTip);
+  });
+}
+function drawList(){
+  const box=document.getElementById("list"); box.innerHTML="";
+  [...DATA].sort((a,b)=>avg(b[1])-avg(a[1])||a[0].localeCompare(b[0])).forEach(([n,v,c])=>{
+    const a=avg(v), b=document.createElement("button");
+    b.type="button"; b.className="row"; b.dataset.n=n; b.style.setProperty("--c",col(c));
+    b.innerHTML='<span class="nm"><span class="sq"></span><span class="name"></span></span><span class="dots" aria-hidden="true"></span><span class="avg"></span>';
+    b.querySelector(".name").textContent=n; b.querySelector(".avg").textContent=f1(a);
+    const d=b.querySelector(".dots"); for(let k=1;k<=5;k++){const s=document.createElement("span");s.className="dot"+(k<=Math.round(a)?" on":"");d.appendChild(s)}
+    b.addEventListener("click",()=>{pin=pin===n?null:n;update()});
+    b.addEventListener("mouseenter",()=>setHov(n)); b.addEventListener("mouseleave",()=>setHov(null));
+    b.addEventListener("focus",()=>setHov(n)); b.addEventListener("blur",()=>setHov(null));
+    box.appendChild(b);
+  });
+}
+function paintList(){document.querySelectorAll(".row").forEach(r=>r.setAttribute("aria-pressed",r.dataset.n===pin))}
+function drawLegend(){
+  const f=focus(), L=document.getElementById("legend");
+  L.innerHTML="";
+  const add=(h,cls)=>{const s=document.createElement("span");s.className=cls||"lg";s.innerHTML=h;L.appendChild(s);return s};
+  if(f){const c=DATA.find(d=>d[0]===f)[2]; const s=add('<span class="sw sel"></span><span></span>'); s.style.setProperty("--c",col(c)); s.lastChild.textContent=f}
+  else add('<span></span>','hint').firstChild.textContent="Showing all 9 products. Hover a product to focus it.";
+  add('<span class="sw avg"></span>Market average');
+}
+function drawSoWhat(){
+  const cur=focus()||SUBJECT, v=DATA.find(d=>d[0]===cur)[1];
+  const gaps=v.map((x,i)=>x-mkt[i]), a=avg(v), m=avg(mkt);
+  const lo=gaps.indexOf(Math.min(...gaps)), hi=gaps.indexOf(Math.max(...gaps));
+  const rank=[...DATA].sort((x,y)=>avg(y[1])-avg(x[1])).findIndex(d=>d[0]===cur)+1;
+  let t=cur+" averages "+f2(a)+" against "+f2(m)+" for the market, ranking "+rank+" of 9. ";
+  t+=gaps[lo]<-0.05?"The widest gap is "+AX[lo]+" ("+gaps[lo].toFixed(1)+" vs market)":"It is at or above market on every parameter";
+  if(gaps[hi]>0.05) t+=", and its strongest lead is "+AX[hi]+" (+"+gaps[hi].toFixed(1)+").";
+  else t+=gaps[lo]<-0.05?", and it does not lead on any parameter.":".";
+  document.getElementById("sowhat").textContent=t;
+}
+function drawTable(){
+  const t=document.getElementById("tbl");
+  t.innerHTML="<thead><tr><th>Product</th>"+AX.map(a=>"<th class='n'>"+a.replace("&","&amp;")+"</th>").join("")+"<th class='n'>Avg</th></tr></thead>";
+  const tb=document.createElement("tbody");
+  DATA.forEach(([n,v])=>{const r=document.createElement("tr");r.innerHTML="<td></td>"+v.map(x=>"<td class='n'>"+x+"</td>").join("")+"<td class='n'>"+f2(avg(v))+"</td>";r.firstChild.textContent=n;tb.appendChild(r)});
+  const r=document.createElement("tr");r.innerHTML="<td><b>Parameter average</b></td>"+mkt.map(x=>"<td class='n'><b>"+f2(x)+"</b></td>").join("")+"<td class='n'><b>"+f2(avg(mkt))+"</b></td>";tb.appendChild(r);
+  t.appendChild(tb);
+}
+function update(){paintRadar();paintList();drawLegend();drawSoWhat()}
+build();drawList();drawTable();update();
+</script>
+</body>
+</html>
